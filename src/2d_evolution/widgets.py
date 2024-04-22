@@ -1,9 +1,8 @@
-from PyQt5.QtWidgets import QLabel, QSizePolicy, QMainWindow, QVBoxLayout, QWidget, QHBoxLayout, QPushButton
+from PyQt5.QtWidgets import QLabel, QSizePolicy, QMainWindow, QVBoxLayout, QWidget, QHBoxLayout, QPushButton, QTabWidget, QTableWidget, QTableWidgetItem
 from models import TheGame
 from timeit import default_timer as timer
 from PyQt5.QtCore import (Qt)
 from PyQt5.QtGui import QImage, qRgb, QPixmap
-from PyQt5.QtWidgets import (QLabel, QSizePolicy)
 
 
 class MainWindow(QMainWindow):
@@ -13,7 +12,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("2dEvolution")
 
         canvas = MatrixViewer()
-        model = TheGame(300, 500, 500)
+        model = TheGame(30, 500, 500)
         self.model = model
         canvas.set_model(model)
         self.canvas = canvas
@@ -46,7 +45,15 @@ class MainWindow(QMainWindow):
 
         widget = QWidget()
         widget.setLayout(layout)
-        self.setCentralWidget(widget)
+
+        self.ranks = QTableWidget()
+
+        tabs = QTabWidget()
+        tabs.addTab(widget, "Map")
+        tabs.addTab(self.ranks, "Ranks")
+
+        self.setCentralWidget(tabs)
+        self.resize(800,800)
         self.show()
 
     def step_clicked(self):
@@ -55,7 +62,32 @@ class MainWindow(QMainWindow):
 
     def tournament_clicked(self):
         self.model.play_tournaments()
+        self.update_ranks()
         self.canvas.updateView()
+
+    def update_ranks(self):
+        ranks = []
+        for creature in self.model.creatures:
+            ranks.append({'Name': creature.name, 'Strategy': creature.player.name, 'Score': creature.score})
+
+        ranks.sort(key=lambda x: x['Score'], reverse=True)
+        self.ranks.setRowCount(len(ranks) + 1)
+        self.ranks.setColumnCount(3)
+
+        self.ranks.setItem(0,0, QTableWidgetItem("Name"))
+        self.ranks.setItem(0, 1, QTableWidgetItem("Strategy"))
+        self.ranks.setItem(0, 2, QTableWidgetItem("Score"))
+        row = 0
+        for rank in ranks:
+            row += 1
+            self.ranks.setItem(row, 0, QTableWidgetItem(rank['Name']))
+            self.ranks.setItem(row, 1, QTableWidgetItem(rank['Strategy']))
+            scoreItem = QTableWidgetItem()
+            scoreItem.setData(Qt.DisplayRole, rank['Score'])
+
+            self.ranks.setItem(row, 2, scoreItem)
+
+
 
 
 class MatrixViewer(QLabel):

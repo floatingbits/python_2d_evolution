@@ -1,5 +1,8 @@
 import numpy as np
 import axelrod as axl
+from axelrod import ResultSet
+import randomname
+from typing import List
 
 
 class Creature:
@@ -10,6 +13,8 @@ class Creature:
         self.color = np.random.randint(0, 255, size=1, dtype=np.ubyte)
         self.vehicle = vehicle
         self.player = np.random.choice(axl.basic_strategies)()
+        self.name = randomname.get_name()
+        self.score = 0
 
     def get_color(self):
         return self.color
@@ -35,6 +40,7 @@ class TheGame:
             matrix[creature.x, creature.y] = creature.get_color()
         return matrix
 
+
     def __init_creatures(self):
         count = 0
         while count < self.num_creatures:
@@ -57,12 +63,28 @@ class TheGame:
             sector_number = sector_y * num_x_sectors + sector_x
             if sector_number not in tournament_contestants.keys():
                 tournament_contestants[sector_number] = []
-            tournament_contestants[sector_number].append(creature.player)
+            tournament_contestants[sector_number].append(creature)
 
         for key, contestants in tournament_contestants.items():
-            tournament = axl.Tournament(contestants)
+            tournament = axl.Tournament([creature.player for creature in contestants])
             results = tournament.play()
-            print(results.ranked_names)
+            self.__distribute_scores(results, contestants)
+            print(results.payoff_matrix)
+            print(results.scores)
+
+    def __distribute_scores(self, results: ResultSet, contestants: List[Creature]):
+        keymap = {}
+        for resultKey in range(len(results.players)):
+            playerName = results.players[resultKey]
+            for key in range(len(contestants)):
+                creature = contestants[key]
+                if playerName == creature.player.name and key not in keymap.keys():
+                    creature.score += sum(results.scores[resultKey])
+                    keymap[key] = 1
+
+
+
+
 
 
 class Vehicle:
