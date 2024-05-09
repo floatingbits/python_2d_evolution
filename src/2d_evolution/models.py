@@ -5,19 +5,18 @@ import randomname
 from typing import List
 
 
-class Creature:
+class SimpleColorAppearance:
 
-    def __init__(self, x: int, y: int, vehicle):
+    def __init__(self):
+        self.color = np.random.randint(0, 255, size=1, dtype=np.ubyte)
+
+
+class Physics2d:
+
+    def __init__(self, x, y, vehicle):
         self.x = x
         self.y = y
-        self.color = np.random.randint(0, 255, size=1, dtype=np.ubyte)
         self.vehicle = vehicle
-        self.player = np.random.choice(axl.basic_strategies)()
-        self.name = randomname.get_name()
-        self.score = 0
-
-    def get_color(self):
-        return self.color
 
     def move(self):
         self.vehicle.move()
@@ -25,66 +24,77 @@ class Creature:
         self.y = self.vehicle.y
 
 
+class PrisonersDilemmaCompetition:
+
+    def __init__(self, player):
+        self.player = player
+        self.score = 0
+
+
+class Creature:
+
+    def __init__(self, physics, appearance, competition, name):
+        self.physics = physics
+        self.appearance = appearance
+        self.competition = competition
+        self.name = name
+
 
 class TheGame:
     def __init__(self, num_creatures: int, w: int, h: int):
         self.num_creatures = num_creatures
         self.w = w
         self.h = h
-        self.creatures = []
+        self.creatures: List[Creature] = []
         self.__init_creatures()
 
     def get_state(self):
         matrix = np.zeros((self.w, self.h), dtype=np.ubyte)
         for creature in self.creatures:
-            matrix[creature.x, creature.y] = creature.get_color()
+            matrix[creature.physics.x, creature.physics.y] = creature.appearance.color
         return matrix
-
 
     def __init_creatures(self):
         count = 0
         while count < self.num_creatures:
             count += 1
             vehicle = Vehicle(self.w, self.h, np.random.randint(0, self.w), np.random.randint(0, self.h))
-            creature = Creature(vehicle.x, vehicle.y, vehicle)
+            physics = Physics2d(vehicle.x, vehicle.y, vehicle)
+            appearance = SimpleColorAppearance()
+            competition = PrisonersDilemmaCompetition(np.random.choice(axl.basic_strategies)())
+            creature = Creature(physics, appearance, competition, randomname.get_name())
             self.creatures.append(creature)
 
     def step_forward(self):
         for creature in self.creatures:
-            creature.move()
+            creature.physics.move()
 
     def play_tournaments(self):
         tournament_contestants = {}
         num_x_sectors = num_y_sectors = 5
 
         for creature in self.creatures:
-            sector_x = creature.x % num_x_sectors
-            sector_y = creature.y % num_y_sectors
+            sector_x = creature.physics.x % num_x_sectors
+            sector_y = creature.physics.y % num_y_sectors
             sector_number = sector_y * num_x_sectors + sector_x
             if sector_number not in tournament_contestants.keys():
                 tournament_contestants[sector_number] = []
             tournament_contestants[sector_number].append(creature)
 
         for key, contestants in tournament_contestants.items():
-            tournament = axl.Tournament([creature.player for creature in contestants])
+            tournament = axl.Tournament([creature.competition.player for creature in contestants])
             results = tournament.play()
             self.__distribute_scores(results, contestants)
-            print(results.payoff_matrix)
-            print(results.scores)
 
     def __distribute_scores(self, results: ResultSet, contestants: List[Creature]):
         keymap = {}
         for resultKey in range(len(results.players)):
-            playerName = results.players[resultKey]
+            player_name = results.players[resultKey]
             for key in range(len(contestants)):
                 creature = contestants[key]
-                if playerName == creature.player.name and key not in keymap.keys():
-                    creature.score += sum(results.scores[resultKey])
+                if player_name == creature.competition.player.name and key not in keymap.keys():
+                    creature.competition.score += sum(results.scores[resultKey])
                     keymap[key] = 1
-
-
-
-
 
 
 class Vehicle:

@@ -68,7 +68,9 @@ class MainWindow(QMainWindow):
     def update_ranks(self):
         ranks = []
         for creature in self.model.creatures:
-            ranks.append({'Name': creature.name, 'Strategy': creature.player.name, 'Score': creature.score})
+            ranks.append({'Name': creature.name,
+                          'Strategy': creature.competition.player.name,
+                          'Score': creature.competition.score})
 
         ranks.sort(key=lambda x: x['Score'], reverse=True)
         self.ranks.setRowCount(len(ranks) + 1)
